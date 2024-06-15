@@ -1,0 +1,202 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    color: #333;
+  }
+  
+  h1, h2, h3 {
+    color: #444;
+  }
+  
+  .hidden {
+    display: none;
+  }
+  
+  .centered-container {
+    width: 100%;
+    max-width: 600px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin: 10px;
+    text-align: center;
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  input[type="text"], input[type="number"] {
+    width: calc(100% - 22px);
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+  
+  button {
+    padding: 10px 20px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+  
+  button:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+  }
+  
+  button:active {
+    transform: scale(1);
+  }
+  
+  #lobbyListDiv, #joinLobbyDiv {
+    display: inline-block;
+    vertical-align: top;
+  }
+  
+  #lobbyListDiv {
+    margin-left: 20px;
+  }
+  
+  #playerHands, #dealerHand {
+    margin: 10px 0;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #f9f9f9;
+    text-align: left;
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  #players div, #playerHands div {
+    margin: 5px 0;
+  }
+  
+  h1 {
+    font-size: 2em;
+  }
+  
+  h2 {
+    font-size: 1.5em;
+  }
+  
+  h3 {
+    font-size: 1.2em;
+  }
+  
+  #lobbyDetails, #players {
+    text-align: left;
+    margin: 10px 0;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .card {
+    display: inline-block;
+    width: 60px;
+    height: 90px;
+    border-radius: 4px;
+    background-color: white; /* 确保卡牌背景为白色 */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin: 5px;
+    animation: slideIn 0.5s ease-in-out;
+  }
+  
+  .card img {
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+  }
+  
+  @keyframes slideIn {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  .table {
+    width: 100%;
+    max-width: 900px;
+    background-color: #228B22; /* 綠色背景 */
+    border-radius: 50% 50% 0 0;
+    padding: 20px;
+    margin: 0 auto;
+    position: relative;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    overflow: hidden; /* 確保半月形效果 */
+    color: white; /* 白色文字 */
+    border: 5px solid #8B4513; /* 賭桌邊框顏色 */
+  }
+  
+  .hand {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap; /* 確保卡片不會溢出 */
+    margin-bottom: 20px;
+  }
+  
+  .controls {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 10px; /* 增加按鈕之間的間距 */
+  }
+  
+  #dealerHand {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #228B22;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 20px;
+  }
+  
+  #playerHands {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #228B22;
+    border-radius: 10px;
+    padding: 10px;
+  }
+  .card {
+    position: relative;
+    width: 60px;
+    height: 90px;
+    margin: 10px;
+    transform-style: preserve-3d;
+    transform: rotateY(0deg);
+    transition: transform 0.6s;
+  }
+  
+  .card.flip {
+    transform: rotateY(180deg);
+  }
+  
+  .card .front, .card .back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 10px;
+  }
+  
+  .card .back {
+    transform: rotateY(180deg);
+  }
+  

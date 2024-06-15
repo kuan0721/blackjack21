@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>21點遊戲 - 組隊大廳</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+  <div id="login" class="centered-container">
+    <h1>21點遊戲 - 登入</h1>
+    <input id="userIdInput" type="text" placeholder="輸入您的ID">
+    <button id="loginBtn">登入</button>
+  </div>
+  
+  <div id="lobby" class="centered-container hidden">
+    <h1>21點遊戲 - 組隊大廳</h1>
+    <button id="createLobbyBtn">創建大廳</button>
+    <div id="joinLobbyDiv">
+      <h3>加入大廳</h3>
+      <input id="lobbyIdInput" type="text" placeholder="輸入大廳ID">
+      <input id="passwordInput" type="text" placeholder="輸入大廳密碼">
+      <button id="joinLobbyBtn">加入大廳</button>
+    </div>
+    <div id="lobbyListDiv">
+      <h3>現有大廳</h3>
+      <div id="lobbyList"></div>
+    </div>
+    <div id="waitingRoom" class="hidden">
+      <h2>等待其他玩家加入...</h2>
+      <div id="lobbyDetails"></div>
+      <div id="players"></div>
+      <button id="readyBtn" class="hidden">準備</button>
+    </div>
+  </div>
+
+  <div id="game" class="hidden">
+    <div class="table">
+      <h2>21點遊戲開始！</h2>
+      <div id="dealerHand" class="hand"></div>
+      <div id="playerHands" class="hand"></div>
+      <div class="controls">
+        <input id="betInput" type="number" placeholder="輸入賭注">
+        <button id="placeBetBtn">下注</button>
+        <button id="hitBtn" disabled>抽牌</button>
+        <button id="standBtn" disabled>停牌</button>
+        <button id="restartGameBtn" class="hidden">重新開始</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const socket = io();
+    let userId;
+    let currentLobbyId;
+
+    document.getElementById('loginBtn').onclick = () => {
+      userId = document.getElementById('userIdInput').value;
+      if (userId) {
+        document.getElementById('login').classList.add('hidden');
+        document.getElementById('lobby').classList.remove('hidden');
+      }
+    };
+
+    document.getElementById('createLobbyBtn').onclick = () => {
+      socket.emit('createLobby', userId);
+    };
+
+    socket.on('lobbyCreated', (data) => {
+      currentLobbyId = data.lobbyId;
+      document.getElementById('waitingRoom').classList.remove('hidden');
+      updateLobbyDetails(data.lobbyId, data.password);
+      updateLobbyUI();
+    });
+
+    document.getElementById('joinLobbyBtn').onclick = () => {
+      const lobbyId = document.getElementById('lobbyIdInput').value;
+      const password = document.getElementById('passwordInput').value;
+      socket.emit('joinLobby', lobbyId, userId, password);
+    };
+
+    socket.on('lobbyJoined', (lobbyId) => {
+      currentLobbyId = lobbyId;
+      document.getElementById('waitingRoom').classList.remove('hidden');
+      updateLobbyUI();
+    });
+
+    socket.on('updateLobby', (players) => {
+      updatePlayerHands(players);
+    });
+
+    document.getElementById('readyBtn').onclick = () => {
+      socket.emit('ready', currentLobbyId, userId);
+    };
+
+    document.getElementById('placeBetBtn').onclick = () => {
+      const betAmount = parseInt(document.getElementById('betInput').value);
+      if (betAmount && betAmount > 0) {
+        socket.emit('placeBet', currentLobbyId, userId, betAmount);
+      }
+    };
+
+    document.getElementById('restartGameBtn').onclick = () => {
+      socket.emit('restartGame', currentLobbyId);
+    };
+
+    socket.on('gameStarted', (lobby) => {
+      document.getElementById('lobby').classList.add('hidden');
+      document.getElementById('game').classList.remove('hidden');
+      updateGameUI(lobby);
+      if (lobby.currentPlayerIndex === 0 && lobby.players[0].id === userId) {
+        document.getElementById('hitBtn').disabled = false;
+        document.getElementById('standBtn').disabled = false;
+      }
+    });
+
+    socket.on('gameRestarted', (lobby) => {
+      clearGameUI();
+      document.getElementById('lobby').classList.add('hidden');
+      document.getElementById('game').classList.remove('hidden');
+      updateGameUI(lobby);
+      if (lobby.currentPlayerIndex === 0 && lobby.players[0].id === userId) {
+        document.getElementById('hitBtn').disabled = false;
+        document.getElementById('standBtn').disabled = false;
+      }
+    });
+
+    socket.on('nextPlayer', (playerId) => {
+      if (playerId === userId) {
+        document.getElementById('hitBtn').disabled = false;
+        document.getElementById('standBtn').disabled = false;
+      } else {
+        document.getElementById('hitBtn').disabled = true;
+        document.getElementById('standBtn').disabled = true;
+      }
+    });
+
+    function updateLobbyDetails(lobbyId, password) {
+      const lobbyDetailsDiv = document.getElementById('lobbyDetails');
+      lobbyDetailsDiv.innerHTML = `
+        <p>大廳ID: ${lobbyId}</p>
+        <p>密碼: ${password}</p>
+      `;
+    }
+
+    function updateLobbyUI() {
+      document.getElementById('readyBtn').classList.remove('hidden');
+    }
+
+    function updateGameUI(lobby) {
+      const dealer = lobby.dealer;
+      const dealerHandDiv = document.getElementById('dealerHand');
+      dealerHandDiv.innerHTML = '莊家手牌: ' + dealer.hand.map(card => `
+        <img class="card" src="/images/cards/${getCardFileName(card)}">
+      `).join('') + ` (價值: ${calculateHandValue(dealer.hand)})`;
+      updatePlayerHands(lobby.players);
+    }
+
+    function updatePlayerHands(players) {
+      const playerHandsDiv = document.getElementById('playerHands');
+      playerHandsDiv.innerHTML = '';
+      players.forEach(player => {
+        const playerHandDiv = document.createElement('div');
+        playerHandDiv.innerHTML = `
+          <div>${player.id} 的手牌: ${player.hand.map(card => `
+            <img class="card" src="/images/cards/${getCardFileName(card)}">
+          `).join('')} (價值: ${calculateHandValue(player.hand)}) (餘額: ${player.balance}) (賭注: ${player.bet})</div>
+        `;
+        playerHandDiv.id = `playerHand-${player.id}`;
+        playerHandsDiv.appendChild(playerHandDiv);
+      });
+    }
+
+    function clearGameUI() {
+      document.getElementById('dealerHand').innerHTML = '';
+      document.getElementById('playerHands').innerHTML = '';
+    }
+
+    document.getElementById('hitBtn').onclick = () => {
+      socket.emit('hit', currentLobbyId, userId);
+    };
+
+    document.getElementById('standBtn').onclick = () => {
+      socket.emit('stand', currentLobbyId, userId);
+    };
+
+    socket.on('updatePlayer', (player) => {
+      const playerHandDiv = document.getElementById(`playerHand-${player.id}`);
+      if (playerHandDiv) {
+        playerHandDiv.innerHTML = `
+          <div>${player.id} 的手牌: ${player.hand.map(card => `
+            <img class="card" src="/images/cards/${getCardFileName(card)}">
+          `).join('')} (價值: ${calculateHandValue(player.hand)}) (餘額: ${player.balance}) (賭注: ${player.bet})</div>
+        `;
+      } else {
+        updatePlayerHands([player]);
+      }
+    });
+
+    socket.on('updateDealer', (dealer) => {
+      const dealerHandDiv = document.getElementById('dealerHand');
+      dealerHandDiv.innerHTML = '莊家手牌: ' + dealer.hand.map(card => `
+        <img class="card" src="/images/cards/${getCardFileName(card)}">
+      `).join('') + ` (價值: ${calculateHandValue(dealer.hand)})`;
+    });
+
+    socket.on('gameEnded', (lobby) => {
+      const playersDiv = document.createElement('div');
+      playersDiv.innerHTML = '<h3>遊戲結果</h3>';
+      lobby.players.forEach(player => {
+        const resultDiv = document.createElement('div');
+        resultDiv.textContent = `${player.id}: ${player.result === 'win' ? '贏了' : player.result === 'lose' ? '輸了' : '平手'} (手牌價值: ${calculateHandValue(player.hand)}) (餘額: ${player.balance})`;
+        playersDiv.appendChild(resultDiv);
+      });
+      document.getElementById('game').appendChild(playersDiv);
+      document.getElementById('restartGameBtn').classList.remove('hidden');
+    });
+
+    socket.on('updateLobbyList', (lobbies) => {
+      const lobbyListDiv = document.getElementById('lobbyList');
+      lobbyListDiv.innerHTML = '';
+      lobbies.forEach(lobby => {
+        const lobbyDiv = document.createElement('div');
+        lobbyDiv.textContent = `大廳ID: ${lobby.id}, 玩家數: ${lobby.players.length}`;
+        lobbyListDiv.appendChild(lobbyDiv);
+      });
+    });
+
+    // Helper function to calculate the hand value (duplicated from the server for UI purposes)
+    function calculateHandValue(hand) {
+      let value = 0;
+      let aceCount = 0;
+      hand.forEach(card => {
+        value += getCardValue(card);
+        if (card.rank === 'A') aceCount++;
+      });
+      while (value > 21 && aceCount > 0) {
+        value -= 10;
+        aceCount--;
+      }
+      return value;
+    }
+
+    // Helper function to get the card value (duplicated from the server for UI purposes)
+    function getCardValue(card) {
+      if (['J', 'Q', 'K'].includes(card.rank)) {
+        return 10;
+      }
+      if (card.rank === 'A') {
+        return 11;
+      }
+      return parseInt(card.rank);
+    }
+
+    // Helper function to get the card file name based on card details
+    function getCardFileName(card) {
+      const rankMap = {
+        'A': '1',
+        'J': '11',
+        'Q': '12',
+        'K': '13'
+      };
+      const rank = rankMap[card.rank] || card.rank;
+      return `${rank}${card.suit}.png`;
+    }
+  </script>
+</body>
+</html>
